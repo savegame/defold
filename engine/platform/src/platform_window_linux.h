@@ -15,8 +15,14 @@
 #ifndef DM_PLATFORM_WINDOW_LINUX_H
 #define DM_PLATFORM_WINDOW_LINUX_H
 
-#include <X11/Xlib.h>
-#include <GL/glx.h>
+#if defined(DM_PLATFORM_AURORA)
+    #include <stdint.h>
+    typedef uintptr_t Window;
+    typedef void*     GLXContext;
+#else
+    #include <X11/Xlib.h>
+    #include <GL/glx.h>
+#endif
 
 #include "window.hpp"
 

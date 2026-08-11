@@ -14,16 +14,19 @@
 
 #include <glfw/glfw3.h>
 
+#if !defined(DM_PLATFORM_AURORA)
 // TODO: Wayland support.
 #define GLFW_EXPOSE_NATIVE_X11
 #define GLFW_EXPOSE_NATIVE_GLX
 #include <glfw/glfw3native.h>
+#endif
 
 #include "platform_window_linux.h"
 #include "platform_window_glfw3_private.h"
 
 namespace dmPlatform
 {
+#if !defined(DM_PLATFORM_AURORA)
     Window GetX11Window(HWindow window)
     {
     	return glfwGetX11Window(window->m_Window);
@@ -33,6 +36,19 @@ namespace dmPlatform
     {
     	return glfwGetGLXContext(window->m_Window);
     }
+#else
+    Window GetX11Window(HWindow window)
+    {
+        (void)window;
+        return 0;
+    }
+
+    GLXContext GetX11GLXContext(HWindow window)
+    {
+        (void)window;
+        return 0;
+    }
+#endif
 
     void FocusWindowNative(HWindow window)
     {
