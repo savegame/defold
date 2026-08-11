@@ -22,6 +22,8 @@
 #include <dmsdk/dlib/android.h>
 #endif
 
+#include <stdlib.h>
+
 #include "engine.h"
 #include "engine_version.h"
 #include "engine_private.h"
@@ -158,6 +160,9 @@ int engine_main(int argc, char *argv[])
 
 int engine_main(int argc, char *argv[])
 {
+#if defined(DM_PLATFORM_AURORA)
+    setenv("PULSE_PROP_media.role", "x-maemo", 1);
+#endif
     return EngineMain(argc, argv);
 }
 
