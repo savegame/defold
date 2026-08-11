@@ -1225,7 +1225,13 @@ namespace dmEngine
         window_params.m_Height                  = engine->m_Height;
         window_params.m_Samples                 = dmConfigFile::GetInt(engine->m_Config, "display.samples", 0);
         window_params.m_Title                   = instance_index ? window_title : project_title;
+#if defined(DM_PLATFORM_AURORA)
+        // Aurora is a mobile OS: the window always covers the whole screen,
+        // regardless of the project's display.fullscreen setting.
+        window_params.m_Fullscreen              = true;
+#else
         window_params.m_Fullscreen              = (bool) dmConfigFile::GetInt(engine->m_Config, "display.fullscreen", 0);
+#endif
         window_params.m_HighDPI                 = (bool) dmConfigFile::GetInt(engine->m_Config, "display.high_dpi", 0);
         window_params.m_FocusOnShow             = (bool) dmConfigFile::GetInt(engine->m_Config, "display.focus_on_show", 1);
         window_params.m_BackgroundColor         = clear_color;

@@ -399,6 +399,32 @@ namespace dmPlatform
 
             glfwSetJoystickCallback(OnJoystick);
 
+#if defined(DM_PLATFORM_AURORA)
+            // wl_shell in the GLFW fork ignores the monitor passed to
+            // glfwCreateWindow(), so fullscreen has to be applied explicitly
+            // after window creation. This goes through
+            // _glfwSetWindowMonitorWayland() -> acquireMonitor() ->
+            // wl_shell_surface_set_fullscreen().
+            if (params.m_Fullscreen)
+            {
+                GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+                const GLFWvidmode* mode = monitor ? glfwGetVideoMode(monitor) : NULL;
+                if (monitor && mode)
+                {
+                    dmLogInfo("Aurora: video mode %dx%d@%d", mode->width, mode->height, mode->refreshRate);
+                    glfwSetWindowMonitor(window->m_Window, monitor, 0, 0,
+                                         mode->width, mode->height, mode->refreshRate);
+                    int fb_width = 0, fb_height = 0;
+                    glfwGetFramebufferSize(window->m_Window, &fb_width, &fb_height);
+                    dmLogInfo("Aurora: framebuffer size after fullscreen request: %dx%d", fb_width, fb_height);
+                }
+                else
+                {
+                    dmLogWarning("Aurora: no primary monitor/video mode, window stays windowed");
+                }
+            }
+#endif
+
             UpdateWindowSize(window);
 
             SetSwapInterval(window, 1);
