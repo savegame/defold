@@ -550,8 +550,12 @@ def default_flags(self):
             # Valgrind versions shipped with supported Linux CI images may not understand newer DWARF forms.
             debug_flags.append('-gdwarf-4')
 
+        aurora_build = os.environ.get('AURORA_BUILD') == '1'
         for f in ['CFLAGS', 'CXXFLAGS']:
-            self.env.append_value(f, [f'--target={clang_arch}'] + debug_flags + ['-D__STDC_LIMIT_MACROS', '-DDDF_EXPOSE_DESCRIPTORS', '-DGOOGLE_PROTOBUF_NO_RTTI', '-Wall', '-Werror=format', '-fno-exceptions','-fPIC', '-fvisibility=hidden'])
+            defines = ['-D__STDC_LIMIT_MACROS', '-DDDF_EXPOSE_DESCRIPTORS', '-DGOOGLE_PROTOBUF_NO_RTTI', '-Wall', '-Werror=format', '-fno-exceptions','-fPIC', '-fvisibility=hidden']
+            if aurora_build:
+                defines += ['-DDM_PLATFORM_AURORA', '-DWL_EGL_PLATFORM']
+            self.env.append_value(f, [f'--target={clang_arch}'] + debug_flags + defines)
 
             if f == 'CXXFLAGS':
                 self.env.append_value(f, ['-fno-rtti'])
@@ -2224,8 +2228,12 @@ def detect(conf):
         pass
         #conf.env['STLIB_TESTAPP'] += ['android']
     elif TargetOS.LINUX == target_os:
-        conf.env['LIB_TESTAPP'] += ['Xext', 'X11', 'Xi', 'pthread']
-        conf.env['LIB_APP'] += ['Xext', 'X11', 'Xi', 'pthread']
+        if os.environ.get('AURORA_BUILD') == '1':
+            conf.env['LIB_TESTAPP'] += ['pthread']
+            conf.env['LIB_APP'] += ['pthread']
+        else:
+            conf.env['LIB_TESTAPP'] += ['Xext', 'X11', 'Xi', 'pthread']
+            conf.env['LIB_APP'] += ['Xext', 'X11', 'Xi', 'pthread']
     elif TargetOS.WINDOWS == target_os:
         conf.env['LINKFLAGS_TESTAPP'] = ['user32.lib', 'shell32.lib']
 

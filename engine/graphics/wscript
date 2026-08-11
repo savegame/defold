@@ -57,7 +57,10 @@ def configure(conf):
     elif platform == "x86_64-linux":
         conf.env.append_value('LINKFLAGS', ['-lXext', '-lX11', '-lXi', '-lGL', '-lGLU', '-lpthread'])
     elif platform == "arm64-linux":
-        conf.env.append_value('LINKFLAGS', ['-lXext', '-lX11', '-lXi', '-lEGL', '-lGLESv1_CM', '-lGLESv2', '-lpthread'])
+        if os.environ.get('AURORA_BUILD') == '1':
+            conf.env.append_value('LINKFLAGS', ['-lEGL', '-lGLESv2', '-ldl', '-lpthread'])
+        else:
+            conf.env.append_value('LINKFLAGS', ['-lXext', '-lX11', '-lXi', '-lEGL', '-lGLESv1_CM', '-lGLESv2', '-lpthread'])
     elif target_os == TargetOS.WINDOWS:
         conf.env.append_value('LINKFLAGS', ['opengl32.lib'])
 
