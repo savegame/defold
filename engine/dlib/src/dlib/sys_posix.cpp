@@ -58,6 +58,16 @@ namespace dmSysPosix
 
     dmSys::Result GetResourcesPath(int argc, char* argv[], char* path, uint32_t path_len)
     {
+#if defined(DM_PLATFORM_AURORA)
+        const char* org = getenv("AURORA_ORG");
+        const char* app = getenv("AURORA_APP");
+        if (org && app)
+        {
+            if (dmSnPrintf(path, path_len, "/usr/share/%s.%s", org, app) >= (int)path_len)
+                return dmSys::RESULT_INVAL;
+            return dmSys::RESULT_OK;
+        }
+#endif
         assert(path_len > 0);
         path[0] = '\0';
         dmPath::Dirname(argv[0], path, path_len);
@@ -66,6 +76,22 @@ namespace dmSysPosix
 
     dmSys::Result GetLogPath(char* path, uint32_t path_len)
     {
+#if defined(DM_PLATFORM_AURORA)
+        const char* org = getenv("AURORA_ORG");
+        const char* app = getenv("AURORA_APP");
+        const char* home = getenv("HOME");
+        if (org && app && home)
+        {
+            char parent[path_len];
+            if (dmSnPrintf(parent, path_len, "%s/.cache/%s", home, org) >= (int)path_len)
+                return dmSys::RESULT_INVAL;
+            dmSys::Mkdir(parent, 0755);
+            if (dmSnPrintf(path, path_len, "%s/.cache/%s/%s", home, org, app) >= (int)path_len)
+                return dmSys::RESULT_INVAL;
+            dmSys::Mkdir(path, 0755);
+            return dmSys::RESULT_OK;
+        }
+#endif
         if (dmStrlCpy(path, ".", path_len) >= path_len)
             return dmSys::RESULT_INVAL;
 

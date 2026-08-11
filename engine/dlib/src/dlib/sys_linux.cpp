@@ -57,6 +57,25 @@ namespace dmSys
 
     Result GetApplicationSupportPath(const char* application_name, char* path_out, uint32_t path_len)
     {
+#if defined(DM_PLATFORM_AURORA)
+        const char* org = getenv("AURORA_ORG");
+        const char* app = getenv("AURORA_APP");
+        const char* home = getenv("HOME");
+        if (org && app && home)
+        {
+            char parent[path_len];
+            if (dmSnPrintf(parent, path_len, "%s/.local/share/%s", home, org) >= (int)path_len)
+                return RESULT_INVAL;
+            Mkdir(parent, 0755);
+            if (dmSnPrintf(path_out, path_len, "%s/.local/share/%s/%s", home, org, app) >= (int)path_len)
+                return RESULT_INVAL;
+            Mkdir(path_out, 0755);
+            return RESULT_OK;
+        }
+        if (dmStrlCpy(path_out, ".", path_len) >= path_len)
+            return RESULT_INVAL;
+        return RESULT_OK;
+#else
         const char* xdg_env = dmSys::GetEnv("XDG_DATA_HOME");
         const char* xdg = xdg_env ? xdg_env : dmSys::GetEnv("HOME");
         char*       xdg_buf = (char*)dmAlloca(path_len);
@@ -120,6 +139,7 @@ namespace dmSys
             return RESULT_OK;
         else
             return r;
+#endif
     }
 
     Result OpenURL(const char* url, const char* target)
