@@ -87,14 +87,11 @@ namespace dmPlatform
         if (glfwGetPlatform() == GLFW_PLATFORM_WAYLAND)
         {
             glfwWindowHint(GLFW_AUTO_ICONIFY, GLFW_FALSE);
-#if !defined(DM_PLATFORM_AURORA)
             mode_params->m_Monitor = monitor;
-#endif
-            // Aurora (wl_shell): the GLFW fork ignores the monitor passed to
-            // glfwCreateWindow() (createWlShellObjects has no window->monitor
-            // branch), and a pre-set monitor would make the glfwSetWindowMonitor()
-            // call in OpenWindow() exit early. Keep m_Monitor NULL here;
-            // fullscreen is applied explicitly after window creation.
+            // Aurora (wl_shell): the GLFW fork ignores window->monitor in
+            // createWlShellObjects(), so this does NOT produce a fullscreen
+            // window there; the window is resized to the video mode after
+            // creation in OpenWindow(). Left as upstream until the fork is fixed.
             return;
         }
 

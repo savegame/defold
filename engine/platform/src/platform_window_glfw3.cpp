@@ -400,11 +400,13 @@ namespace dmPlatform
             glfwSetJoystickCallback(OnJoystick);
 
 #if defined(DM_PLATFORM_AURORA)
-            // wl_shell in the GLFW fork ignores the monitor passed to
-            // glfwCreateWindow(), so fullscreen has to be applied explicitly
-            // after window creation. This goes through
-            // _glfwSetWindowMonitorWayland() -> acquireMonitor() ->
-            // wl_shell_surface_set_fullscreen().
+            // wl_shell in the GLFW fork has no working fullscreen path:
+            // createWlShellObjects() ignores window->monitor, and calling
+            // glfwSetWindowMonitor() here is a no-op because the window is
+            // created hidden (GLFW_VISIBLE=FALSE) and the fork creates the
+            // shell objects lazily at glfwShowWindow() — acquireMonitor()
+            // finds no wl_shell surface and does nothing.
+            // Until the fork is fixed, size the window to the video mode.
             if (params.m_Fullscreen)
             {
                 GLFWmonitor* monitor = glfwGetPrimaryMonitor();
@@ -412,11 +414,10 @@ namespace dmPlatform
                 if (monitor && mode)
                 {
                     dmLogInfo("Aurora: video mode %dx%d@%d", mode->width, mode->height, mode->refreshRate);
-                    glfwSetWindowMonitor(window->m_Window, monitor, 0, 0,
-                                         mode->width, mode->height, mode->refreshRate);
+                    glfwSetWindowSize(window->m_Window, (int) mode->width, (int) mode->height);
                     int fb_width = 0, fb_height = 0;
                     glfwGetFramebufferSize(window->m_Window, &fb_width, &fb_height);
-                    dmLogInfo("Aurora: framebuffer size after fullscreen request: %dx%d", fb_width, fb_height);
+                    dmLogInfo("Aurora: framebuffer size after resize: %dx%d", fb_width, fb_height);
                 }
                 else
                 {
