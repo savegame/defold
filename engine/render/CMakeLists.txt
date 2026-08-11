@@ -12,12 +12,18 @@ set(RENDER_SRC_DIR "${RENDER_ROOT}/src")
 set(RENDER_PROTO_ROOT "${RENDER_ROOT}/proto")
 set(RENDER_GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/render")
 set(RENDER_PROTO_PY_DIR "${CMAKE_CURRENT_BINARY_DIR}/python/render")
+# Aurora: the desktop-GL `graphics` target is disabled (GLES-only build),
+# link the GLES variant instead.
+set(RENDER_GRAPHICS_LIB graphics)
+if("$ENV{AURORA_BUILD}" STREQUAL "1" AND TARGET_PLATFORM MATCHES "^arm64-")
+  set(RENDER_GRAPHICS_LIB graphics_opengles)
+endif()
 set(RENDER_DEPENDENCIES
   ddf
   dlib
   extension
   font
-  graphics
+  ${RENDER_GRAPHICS_LIB}
   graphics_proto
   image
   lua
@@ -27,7 +33,7 @@ set(RENDER_FONT_DEFAULT_DEPENDENCIES
   ddf
   dlib
   font
-  graphics
+  ${RENDER_GRAPHICS_LIB}
   script
   $<$<TARGET_EXISTS:graphics_proto>:graphics_proto>)
 

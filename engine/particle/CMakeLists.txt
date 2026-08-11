@@ -18,10 +18,16 @@ set(PARTICLE_PROTO_PY_DIR "${CMAKE_CURRENT_BINARY_DIR}/python/particle")
 set(PARTICLE_PROTO_PY "${PARTICLE_PROTO_PY_DIR}/particle_ddf_pb2.py")
 set(PARTICLE_PROTO_PY_INIT "${PARTICLE_PROTO_PY_DIR}/__init__.py")
 set(PARTICLE_BPROTO "${PARTICLE_GEN_DIR}/particle_ddf.bproto")
+# Aurora: the desktop-GL `graphics` target is disabled (GLES-only build),
+# link the GLES variant instead.
+set(PARTICLE_GRAPHICS_LIB graphics)
+if("$ENV{AURORA_BUILD}" STREQUAL "1" AND TARGET_PLATFORM MATCHES "^arm64-")
+  set(PARTICLE_GRAPHICS_LIB graphics_opengles)
+endif()
 set(PARTICLE_DEPENDENCIES
   ddf
   dlib
-  graphics
+  ${PARTICLE_GRAPHICS_LIB}
   $<$<TARGET_EXISTS:graphics_proto>:graphics_proto>)
 set(PARTICLE_NULL_DEPENDENCIES
   ddf

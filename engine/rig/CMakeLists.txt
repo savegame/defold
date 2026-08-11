@@ -18,10 +18,16 @@ set(RIG_PROTO_PY_DIR "${CMAKE_CURRENT_BINARY_DIR}/python/rig")
 set(RIG_PROTO_PY "${RIG_PROTO_PY_DIR}/rig_ddf_pb2.py")
 set(RIG_PROTO_PY_INIT "${RIG_PROTO_PY_DIR}/__init__.py")
 set(RIG_BPROTO "${RIG_GEN_DIR}/rig_ddf.bproto")
+# Aurora: the desktop-GL `graphics` target is disabled (GLES-only build),
+# link the GLES variant instead.
+set(RIG_GRAPHICS_LIB graphics)
+if("$ENV{AURORA_BUILD}" STREQUAL "1" AND TARGET_PLATFORM MATCHES "^arm64-")
+  set(RIG_GRAPHICS_LIB graphics_opengles)
+endif()
 set(RIG_DEPENDENCIES
   ddf
   dlib
-  graphics
+  ${RIG_GRAPHICS_LIB}
   $<$<TARGET_EXISTS:graphics_proto>:graphics_proto>)
 set(RIG_SHARED_DEPENDENCIES
   ddf_noasan

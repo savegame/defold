@@ -33,6 +33,9 @@ if(TARGET_PLATFORM MATCHES "macos|linux|win32$")
 endif()
 
 if(TOOLS_IS_DESKTOP)
+  # Aurora: only dmengine is built for the target; gdc is a desktop-only
+  # gamepad mapping tool and requires desktop GL, which Aurora does not have.
+  if(NOT ("$ENV{AURORA_BUILD}" STREQUAL "1" AND TARGET_PLATFORM MATCHES "^arm64-"))
   block()
     # gdc creates an OpenGL window even when the engine build also enables Vulkan.
     set(TOOLS_GDC_EXPORTS GraphicsAdapterOpenGL)
@@ -70,6 +73,7 @@ if(TOOLS_IS_DESKTOP)
     endif()
     defold_install_targets(TARGETS gdc RUNTIME DESTINATION bin/${TARGET_PLATFORM})
   endblock()
+  endif() # not Aurora arm64
 
   set(TOOLS_LAUNCHER_SOURCES
     "${TOOLS_SRC_DIR}/launcher/launcher.cpp"
