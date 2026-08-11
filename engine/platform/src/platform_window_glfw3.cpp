@@ -153,6 +153,18 @@ namespace dmPlatform
     #endif
 
     #if defined(__linux__) && !defined(ANDROID)
+    #if defined(DM_PLATFORM_AURORA)
+        glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_WAYLAND);
+        if (glfwInit() == GL_FALSE)
+        {
+            glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+            if (glfwInit() == GL_FALSE)
+            {
+                dmLogError("Could not initialize glfw.");
+                return 0;
+            }
+        }
+    #else
         glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
         if (glfwInit() == GL_FALSE)
         {
@@ -163,6 +175,7 @@ namespace dmPlatform
                 return 0;
             }
         }
+    #endif
     #else
         if (glfwInit() == GL_FALSE)
         {
