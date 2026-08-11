@@ -1287,6 +1287,12 @@ def _compile_file_clang(platform, info, srcfile, exefile, verbose):
     if target is not None:
         cmd.append(f'--target={target}')
 
+    if platform == 'arm64-linux':
+        sysroot = os.environ.get('AURORA_SYSROOT')
+        if sysroot:
+            gcc_install_dir = os.path.join(sysroot, 'usr', 'lib', 'gcc', 'aarch64-meego-linux-gnu', '12.3.1')
+            cmd.extend(['--sysroot', sysroot, '-fuse-ld=lld', '--gcc-install-dir=' + gcc_install_dir])
+
     cmd.extend([srcfile, '-o', exefile])
     return run.command(cmd)
 

@@ -15,6 +15,10 @@
 #ifndef DM_PLATFORM_WINDOW_GLFW3_PRIVATE_H
 #define DM_PLATFORM_WINDOW_GLFW3_PRIVATE_H
 
+#if defined(DM_PLATFORM_AURORA)
+    #define GLFW_INCLUDE_ES3
+#endif
+
 #include <glfw/glfw3.h>
 
 #include "window.hpp"

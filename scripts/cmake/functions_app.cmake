@@ -31,7 +31,11 @@ function(defold_target_link_app target platform)
     endforeach()
   elseif(_PLAT_OS STREQUAL "linux")
     # LIB_APP for Linux
-    target_link_libraries(${target} ${DAPP_SCOPE} Xext X11 Xi pthread)
+    if(DEFINED ENV{AURORA_BUILD} AND "$ENV{AURORA_BUILD}" STREQUAL "1")
+      target_link_libraries(${target} ${DAPP_SCOPE} pthread)
+    else()
+      target_link_libraries(${target} ${DAPP_SCOPE} Xext X11 Xi pthread)
+    endif()
   elseif(_PLAT_OS STREQUAL "win32")
     # LINKFLAGS_APP for Windows (plus DINPUT set)
     target_link_libraries(${target} ${DAPP_SCOPE}

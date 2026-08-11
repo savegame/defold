@@ -551,16 +551,33 @@ def default_flags(self):
             debug_flags.append('-gdwarf-4')
 
         aurora_build = os.environ.get('AURORA_BUILD') == '1'
+        aurora_sysroot = os.environ.get('AURORA_SYSROOT')
+        aurora_link_extra = []
+        aurora_gcc_dir = None
+        # Aurora sysroot must only be used for the arm64-linux target build,
+        # not for host tools built in the same invocation.
+        if build_util.get_target_platform() == 'arm64-linux' and aurora_build and aurora_sysroot:
+            aurora_gcc_dir = os.path.join(aurora_sysroot, 'usr', 'lib', 'gcc', 'aarch64-meego-linux-gnu', '12.3.1')
+            aurora_link_extra += [
+                '--sysroot=' + aurora_sysroot,
+                '--gcc-install-dir=' + aurora_gcc_dir,
+                '-L' + os.path.join(aurora_sysroot, 'usr', 'lib'),
+                '-Wl,-rpath-link,' + os.path.join(aurora_sysroot, 'usr', 'lib')]
+
         for f in ['CFLAGS', 'CXXFLAGS']:
             defines = ['-D__STDC_LIMIT_MACROS', '-DDDF_EXPOSE_DESCRIPTORS', '-DGOOGLE_PROTOBUF_NO_RTTI', '-Wall', '-Werror=format', '-fno-exceptions','-fPIC', '-fvisibility=hidden']
-            if aurora_build:
+            if aurora_build and build_util.get_target_platform() == 'arm64-linux':
                 defines += ['-DDM_PLATFORM_AURORA', '-DWL_EGL_PLATFORM']
+                if aurora_sysroot:
+                    defines += ['--sysroot=' + aurora_sysroot]
+                    if aurora_gcc_dir:
+                        defines += ['--gcc-install-dir=' + aurora_gcc_dir]
             self.env.append_value(f, [f'--target={clang_arch}'] + debug_flags + defines)
 
             if f == 'CXXFLAGS':
                 self.env.append_value(f, ['-fno-rtti'])
 
-        self.env.append_value('LINKFLAGS', [f'--target={clang_arch}', '-fuse-ld=lld'])
+        self.env.append_value('LINKFLAGS', [f'--target={clang_arch}', '-fuse-ld=lld'] + aurora_link_extra)
 
     elif TargetOS.MACOS == target_os:
         sys_root = self.sdkinfo[build_util.get_target_platform()]['path']

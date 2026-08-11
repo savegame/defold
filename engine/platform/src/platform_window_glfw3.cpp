@@ -19,6 +19,10 @@
 #include "platform_window_glfw3_private.h"
 #include "platform_window_opengl.h"
 
+#if defined(DM_PLATFORM_AURORA)
+    #define GLFW_INCLUDE_ES3
+#endif
+
 #include <glfw/glfw3.h>
 
 #include <dlib/platform.h>

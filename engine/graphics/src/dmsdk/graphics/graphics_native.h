@@ -42,8 +42,12 @@
     typedef void* HGLRC;
 #endif
 
-#if defined(__linux__) && !defined(ANDROID)
+#if defined(__linux__) && !defined(ANDROID) && !defined(DM_PLATFORM_AURORA)
     #include <GL/glx.h>
+#elif defined(DM_PLATFORM_AURORA)
+    #include <stdint.h>
+    typedef uintptr_t Window;
+    typedef void*     GLXContext;
 #else
     typedef void* Window;
     typedef void* GLXContext;

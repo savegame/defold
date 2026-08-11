@@ -7,7 +7,7 @@
 #include <string.h>
 
 #if defined(__linux__)
-#include <linux/if.h>
+#include <net/if.h>
 #endif
 
 #if defined(__EMSCRIPTEN__)

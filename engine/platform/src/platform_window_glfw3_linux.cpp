@@ -12,6 +12,10 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#if defined(DM_PLATFORM_AURORA)
+    #define GLFW_INCLUDE_ES3
+#endif
+
 #include <glfw/glfw3.h>
 
 #if !defined(DM_PLATFORM_AURORA)
