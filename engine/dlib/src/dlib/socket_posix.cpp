@@ -604,9 +604,14 @@ namespace dmSocket
 #if !defined(__APPLE__)
     Result GetLocalAddress(Address* address)
     {
-#ifdef __ANDROID__
+#if defined(__ANDROID__) || defined(DM_PLATFORM_AURORA)
         // NOTE: This method should probably be used on Linux as well
         // We just fall-back to localhost
+        // DEFOLD CHANGE (Aurora): use this branch on Aurora too — the #else
+        // path resolves the local hostname via blocking getaddrinfo(), which
+        // stalls the engine start for tens of seconds when the device has a
+        // network interface up but its DNS is unreachable (typical on
+        // mobile). This branch enumerates interfaces via ioctl (no DNS).
         dmSocket::GetHostByName("localhost", address);
 
         struct ifreq *ifr;
