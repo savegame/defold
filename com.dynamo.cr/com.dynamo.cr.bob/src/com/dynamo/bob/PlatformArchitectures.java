@@ -27,7 +27,8 @@ public enum PlatformArchitectures {
     NX64(new String[] {"arm64-nx64"}, new String[] {"arm64-nx64"}),
     PS4(new String[] {"x86_64-ps4"}, new String[] {"x86_64-ps4"}),
     PS5(new String[] {"x86_64-ps5"}, new String[] {"x86_64-ps5"}),
-    XBoxOne(new String[] {"x86_64-xbone"}, new String[] {"x86_64-xbone"});
+    XBoxOne(new String[] {"x86_64-xbone"}, new String[] {"x86_64-xbone"}),
+    AuroraOS(new String[] {"arm64-aurora"}, new String[] {"arm64-aurora"});
 
     String[] architectures;
     String[] defaultArchitectures;
