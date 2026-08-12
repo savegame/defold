@@ -42,6 +42,10 @@ allprojects {
     }
     tasks.withType(JavaCompile) {
         options.incremental = true
+        // Target Java 21: the Defold editor bundles JRE 21 and the Aurora OS
+        // SDK host tools (sfdk) run on the host's JDK 21, so bob.jar classes
+        // must be Java 21 compatible even when built with a newer JDK.
+        options.release = 21
     }
 }
 
