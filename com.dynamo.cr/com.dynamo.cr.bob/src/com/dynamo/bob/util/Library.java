@@ -112,7 +112,7 @@ public final class Library {
                     tasks.add(task);
                     var host = hostKey(uri);
                     if (host != null) {
-                        downloadTasksByHost.computeIfAbsent(host, _ -> new ArrayList<>()).add(task);
+                        downloadTasksByHost.computeIfAbsent(host, h -> new ArrayList<>()).add(task);
                     }
                 }
 
@@ -219,7 +219,7 @@ public final class Library {
             if (host == null) {
                 throw new IllegalArgumentException("Invalid host URI " + uri);
             }
-            var permit = hostLimits.computeIfAbsent(host, _ -> new Semaphore(FETCHES_PER_HOST));
+            var permit = hostLimits.computeIfAbsent(host, h -> new Semaphore(FETCHES_PER_HOST));
             permit.acquire();
             try {
                 var cachedArchive = cachedResult.result().archive();
@@ -484,13 +484,13 @@ public final class Library {
 
     private static String problemMessage(Problem problem) {
         return switch (problem) {
-            case Problem.Missing _ -> "missing";
-            case Problem.FetchFailed _ -> "fetch failed";
+            case Problem.Missing ignored -> "missing";
+            case Problem.FetchFailed ignored -> "fetch failed";
             case Problem.FailedHTTPRequest(var status) -> "fetch failed: HTTP " + status;
-            case Problem.HttpConnectTimeout _ -> "fetch failed: HTTP connect timed out";
-            case Problem.InvalidArchive _ -> "invalid archive";
+            case Problem.HttpConnectTimeout ignored -> "fetch failed: HTTP connect timed out";
+            case Problem.InvalidArchive ignored -> "invalid archive";
             case Problem.DefoldMinVersion(var required) -> "requires Defold " + required + " or newer";
-            case Problem.InstallFailed _ -> "install failed";
+            case Problem.InstallFailed ignored -> "install failed";
         };
     }
 

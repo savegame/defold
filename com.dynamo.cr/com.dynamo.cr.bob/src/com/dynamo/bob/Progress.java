@@ -45,7 +45,7 @@ public final class Progress implements IProgress {
     }
 
     public static Progress discarding() {
-        return new Progress((_, _) -> {
+        return new Progress((message, fraction) -> {
         });
     }
 
@@ -59,17 +59,17 @@ public final class Progress implements IProgress {
             var renderedState = new ConsoleState(message, percent / 5);
             if (!Objects.equals(lastRenderedState.getAndSet(renderedState), renderedState)) {
                 var label = switch (message) {
-                    case Message.Bundling _ -> "Bundling";
-                    case Message.BuildingEngine _ -> "Building engine";
-                    case Message.CleaningEngine _ -> "Cleaning engine";
-                    case Message.DownloadingSymbols _ -> "Downloading symbols";
-                    case Message.TranspilingToLua _ -> "Transpiling to Lua";
-                    case Message.ReadingTasks _ -> "Reading tasks";
-                    case Message.Building _ -> "Building";
-                    case Message.Cleaning _ -> "Cleaning";
-                    case Message.GeneratingReport _ -> "Generating report";
-                    case Message.Working _ -> "Working";
-                    case Message.ReadingClasses _ -> "Reading classes";
+                    case Message.Bundling ignored -> "Bundling";
+                    case Message.BuildingEngine ignored -> "Building engine";
+                    case Message.CleaningEngine ignored -> "Cleaning engine";
+                    case Message.DownloadingSymbols ignored -> "Downloading symbols";
+                    case Message.TranspilingToLua ignored -> "Transpiling to Lua";
+                    case Message.ReadingTasks ignored -> "Reading tasks";
+                    case Message.Building ignored -> "Building";
+                    case Message.Cleaning ignored -> "Cleaning";
+                    case Message.GeneratingReport ignored -> "Generating report";
+                    case Message.Working ignored -> "Working";
+                    case Message.ReadingClasses ignored -> "Reading classes";
                     case Message.DownloadingArchives(var count) -> "Downloading " + count + " archives";
                     case Message.DownloadingArchive(var uri) -> "Downloading " + uri;
                 };
@@ -157,7 +157,7 @@ public final class Progress implements IProgress {
 
         private Rational capacityForParts(long requestedParts) {
             var totalCapacity = switch (parent) {
-                case Progress _ -> Rational.ONE;
+                case Progress progress -> Rational.ONE;
                 case SubProgress subProgress -> subProgress.totalCapacity;
                 default -> throw new IllegalStateException("Unsupported progress parent");
             };

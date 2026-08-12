@@ -147,13 +147,13 @@ public final class DependencyMetadata {
 
     private static String problemName(Library.Problem problem) {
         return switch (problem) {
-            case Library.Problem.Missing _ -> "missing";
-            case Library.Problem.FetchFailed _ -> "fetch_failed";
-            case Library.Problem.FailedHTTPRequest _ -> "failed_http_request";
-            case Library.Problem.HttpConnectTimeout _ -> "http_connect_timeout";
-            case Library.Problem.InvalidArchive _ -> "invalid_archive";
-            case Library.Problem.DefoldMinVersion _ -> "defold_min_version";
-            case Library.Problem.InstallFailed _ -> "install_failed";
+            case Library.Problem.Missing ignored -> "missing";
+            case Library.Problem.FetchFailed ignored -> "fetch_failed";
+            case Library.Problem.FailedHTTPRequest ignored -> "failed_http_request";
+            case Library.Problem.HttpConnectTimeout ignored -> "http_connect_timeout";
+            case Library.Problem.InvalidArchive ignored -> "invalid_archive";
+            case Library.Problem.DefoldMinVersion ignored -> "defold_min_version";
+            case Library.Problem.InstallFailed ignored -> "install_failed";
         };
     }
 }
