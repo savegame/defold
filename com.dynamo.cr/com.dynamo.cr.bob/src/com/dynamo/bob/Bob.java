@@ -504,6 +504,17 @@ public class Bob {
                 opt("ksa", "keystore-alias", ONE, "The alias of the signing key+cert you want to use (Android)"),
                 opt("kp", "key-pass", ONE, "Password of the deployment key if different from the keystore password (Android)"),
 
+                opt(null, "aurora-sdk", ONE, ABS_OR_CWD_REL_PATH, "Path to the sfdk tool from the Aurora SDK (Aurora OS)"),
+                opt(null, "aurora-target", ONE, "Aurora SDK target to build the RPM with. Default is the minimal target >= 5.1.0.0 for the platform architecture (Aurora OS)"),
+                opt(null, "aurora-cert", ONE, ABS_OR_CWD_REL_PATH, "Certificate (.pem) used to sign the RPM (Aurora OS)"),
+                opt(null, "aurora-key", ONE, ABS_OR_CWD_REL_PATH, "Private key (.pem) used to sign the RPM (Aurora OS)"),
+                opt(null, "aurora-key-pass", ONE, "Passphrase of the RPM signing key (Aurora OS)"),
+                opt(null, "aurora-bundle-libs", MANY, ABS_OR_CWD_REL_PATH, "Additional shared library (.so) to bundle into the RPM (Aurora OS)"),
+                opt(null, "aurora-icon-86", ONE, ABS_OR_CWD_REL_PATH, "86x86 application icon .png (Aurora OS)"),
+                opt(null, "aurora-icon-108", ONE, ABS_OR_CWD_REL_PATH, "108x108 application icon .png (Aurora OS)"),
+                opt(null, "aurora-icon-128", ONE, ABS_OR_CWD_REL_PATH, "128x128 application icon .png (Aurora OS)"),
+                opt(null, "aurora-icon-172", ONE, ABS_OR_CWD_REL_PATH, "172x172 application icon .png (Aurora OS)"),
+
                 opt("d", "debug", ZERO, "DEPRECATED! Use --variant=debug instead"),
                 opt(null, "variant", ONE, "Specify debug, release or headless version of dmengine (when bundling)"),
                 opt(null, "strip-executable", ZERO, "Strip the dmengine of debug symbols (when bundling iOS or Android)"),
@@ -894,6 +905,10 @@ public class Bob {
                             project.setOption(o.getLongOpt(), "true");
                         }
                     }
+                }
+                // The generic loop above keeps only the first value of multi-value options
+                if (cmd.hasOption("aurora-bundle-libs")) {
+                    project.setOption("aurora-bundle-libs", String.join(",", cmd.getOptionValues("aurora-bundle-libs")));
                 }
                 if (internalOptions != null) {
                     internalOptions.forEach(project::setOption);
