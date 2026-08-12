@@ -40,6 +40,11 @@
 #include "graphics_opengl_private.h"
 #include <platform/window.hpp>
 
+#if defined(AURORA_FBO)
+    // Port module (private repo): intermediate FBO + content rotation
+    #include <aurora/fbo.h>
+#endif
+
 #if defined(DM_PLATFORM_MACOS)
     // Potential name clash with ddf. If included before ddf/ddf.h (TYPE_BOOL)
     #include <Carbon/Carbon.h>
@@ -2174,11 +2179,68 @@ static void LogFrameBufferError(GLenum status)
         glBindFramebuffer(GL_FRAMEBUFFER, dmPlatform::OpenGLGetDefaultFramebufferId());
     }
 
+#if defined(AURORA_FBO)
+    // Aurora OS: present the port's intermediate FBO to the real default
+    // framebuffer as a fullscreen quad with the rotation matrix, then restore
+    // the GL state the engine caches in OpenGLContext (docs/fbo_rotation.md,
+    // section 4.6). No allocations, no computations in here: the matrices are
+    // precomputed in the module and selected in dmAuroraFBO::SetRotation.
+    static void AuroraPresentFrame(OpenGLContext* context)
+    {
+        if (!dmAuroraFBO::IsInitialized())
+        {
+            return;
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glViewport(0, 0, (GLsizei) dmAuroraFBO::GetPresentWidth(), (GLsizei) dmAuroraFBO::GetPresentHeight());
+
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_STENCIL_TEST);
+        glDisable(GL_BLEND);
+        glDisable(GL_CULL_FACE);
+        glDisable(GL_SCISSOR_TEST);
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+        glUseProgram(dmAuroraFBO::GetQuadProgram());
+        glUniformMatrix4fv(dmAuroraFBO::GetRotationUniform(), 1, GL_FALSE, dmAuroraFBO::GetActiveMatrix());
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, dmAuroraFBO::GetColorTexture());
+        glBindVertexArray(dmAuroraFBO::GetQuadVAO());
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
+        CHECK_GL_ERROR;
+
+        // Restore the state the engine caches. The scissor rectangle itself was
+        // not touched, only GL_SCISSOR_TEST was toggled. For the pipeline state
+        // we record the quad's state as "last applied" and let
+        // ApplyPipelineState re-apply the engine's state where it differs -
+        // writing m_PipelineState directly would leave the GL state and the
+        // cache inconsistent (HAS_CHANGED would skip the restoring gl calls).
+        PipelineState& ps_applied = context->m_PipelineState;
+        ps_applied.m_DepthTestEnabled   = 0;
+        ps_applied.m_StencilEnabled     = 0;
+        ps_applied.m_BlendEnabled       = 0;
+        ps_applied.m_CullFaceEnabled    = 0;
+        ps_applied.m_ScissorTestEnabled = 0;
+        ps_applied.m_WriteColorMask     = DM_GRAPHICS_STATE_WRITE_R | DM_GRAPHICS_STATE_WRITE_G | DM_GRAPHICS_STATE_WRITE_B | DM_GRAPHICS_STATE_WRITE_A;
+        ApplyPipelineState(context);
+
+        glViewport(context->m_ViewportRect[0], context->m_ViewportRect[1], context->m_ViewportRect[2], context->m_ViewportRect[3]);
+        glUseProgram(context->m_CurrentProgram ? GetGLHandle(context, context->m_CurrentProgram->m_Id) : 0);
+        glBindVertexArray(GetGLHandle(context, context->m_GlobalVAO));
+        glBindFramebuffer(GL_FRAMEBUFFER, dmAuroraFBO::GetFBOId());
+        CHECK_GL_ERROR;
+    }
+#endif
+
     static void OpenGLFlip(HContext _context)
     {
         DM_PROFILE(__FUNCTION__);
         OpenGLContext* context = (OpenGLContext*) _context;
         PostDeleteTextures(context, false);
+#if defined(AURORA_FBO)
+        AuroraPresentFrame(context);
+#endif
         dmPlatform::SwapBuffers(context->m_BaseContext.m_Window);
         CHECK_GL_ERROR;
     }

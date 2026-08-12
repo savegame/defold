@@ -29,6 +29,11 @@
 #include <dlib/log.h>
 #include <dlib/math.h>
 
+#if defined(AURORA_FBO)
+    // Port module (private repo): intermediate FBO + content rotation
+    #include <aurora/fbo.h>
+#endif
+
 namespace dmPlatform
 {
     // Gamepad callbacks are shared across all windows, so we need a
@@ -37,6 +42,9 @@ namespace dmPlatform
     {
         FWindowGamepadEventCallback m_GamepadEventCallback;
         void*                      m_GamepadEventCallbackUserData;
+#if defined(AURORA_FBO)
+        GLFWwindow*                m_Window; // main window, for content transform updates
+#endif
     } g_GLFW3Context;
 
     static void UpdateWindowSize(HWindow window)
@@ -55,9 +63,19 @@ namespace dmPlatform
         HWindow window = (HWindow) glfwGetWindowUserPointer(glfw_window);
         UpdateWindowSize(window);
 
+#if defined(AURORA_FBO)
+        // A real resize (never fired by a rotation): recreate the FBO
+        // attachments before the engine is notified about the new size.
+        dmAuroraFBO::SetFramebufferSize((uint32_t) window->m_Width, (uint32_t) window->m_Height);
+#endif
+
         if (window->m_ResizeCallback != 0x0)
         {
+#if defined(AURORA_FBO)
+            window->m_ResizeCallback(window->m_ResizeCallbackUserData, dmAuroraFBO::GetWidth(), dmAuroraFBO::GetHeight());
+#else
             window->m_ResizeCallback(window->m_ResizeCallbackUserData, window->m_Width, window->m_Height);
+#endif
         }
     }
 
@@ -148,6 +166,29 @@ namespace dmPlatform
         }
     }
 
+#if defined(AURORA_FBO)
+    static void OnMonitorEvent(GLFWmonitor* monitor, int event)
+    {
+        if (event != GLFW_TRANSFORM_CHANGED)
+        {
+            return;
+        }
+        int transform = glfwGetMonitorTransform(monitor);
+        int rotation  = dmAuroraFBO::ComputeRotation(transform);
+        // Rotation changes neither the window size nor the FBO size, only the
+        // quad matrix and the buffer transform hint for the compositor.
+        if (rotation != dmAuroraFBO::GetRotation())
+        {
+            dmAuroraFBO::SetRotation(rotation);
+            if (g_GLFW3Context.m_Window)
+            {
+                glfwSetWindowContentTransform(g_GLFW3Context.m_Window, rotation);
+            }
+            dmLogInfo("Aurora: monitor transform %d -> content rotation %d", transform, rotation);
+        }
+    }
+#endif
+
     HWindow NewWindow()
     {
         glfwSetErrorCallback(OnError);
@@ -205,7 +246,13 @@ namespace dmPlatform
 
     int32_t OpenGLGetDefaultFramebufferId()
     {
+#if defined(AURORA_FBO)
+        // The engine renders into the port's intermediate FBO; it is
+        // presented to the real default framebuffer in OpenGLFlip.
+        return (int32_t) dmAuroraFBO::GetFBOId();
+#else
         return 0;
+#endif
     }
 
     static WindowModeParams GetWindowModeParams(const WindowCreateParams& params)
@@ -428,6 +475,36 @@ namespace dmPlatform
 
             UpdateWindowSize(window);
 
+#if defined(AURORA_FBO)
+            {
+                // The GL context is current here (OpenWindowOpenGL called
+                // glfwMakeContextCurrent), so the FBO module can create its
+                // GL resources right away. The game orientation comes from
+                // the requested size (game.project display.width/height),
+                // the panel type from the native video mode.
+                GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+                const GLFWvidmode* mode = monitor ? glfwGetVideoMode(monitor) : NULL;
+                uint32_t panel_width  = mode ? (uint32_t) mode->width  : (uint32_t) window->m_Width;
+                uint32_t panel_height = mode ? (uint32_t) mode->height : (uint32_t) window->m_Height;
+                if (dmAuroraFBO::Initialize((uint32_t) window->m_Width, (uint32_t) window->m_Height,
+                                            params.m_Width, params.m_Height,
+                                            panel_width, panel_height))
+                {
+                    int transform = monitor ? glfwGetMonitorTransform(monitor) : 0;
+                    int rotation  = dmAuroraFBO::ComputeRotation(transform);
+                    dmAuroraFBO::SetRotation(rotation);
+                    glfwSetWindowContentTransform(window->m_Window, rotation);
+                    g_GLFW3Context.m_Window = window->m_Window;
+                    glfwSetMonitorCallback(OnMonitorEvent);
+                    dmLogInfo("Aurora: initial monitor transform %d -> content rotation %d", transform, rotation);
+                }
+                else
+                {
+                    dmLogError("Aurora: FBO initialization failed, rendering directly to the default framebuffer");
+                }
+            }
+#endif
+
             SetSwapInterval(window, 1);
 
             if (windowed)
@@ -465,6 +542,11 @@ namespace dmPlatform
     void CloseWindow(HWindow window)
     {
         UninstallWindowCloseHandlerNative(window);
+#if defined(AURORA_FBO)
+        // Release the FBO module's GL resources while the context still exists
+        glfwMakeContextCurrent(window->m_Window);
+        dmAuroraFBO::Finalize();
+#endif
         glfwDestroyWindow(window->m_Window);
         if (window->m_AuxWindow)
             glfwDestroyWindow(window->m_AuxWindow);
@@ -497,10 +579,23 @@ namespace dmPlatform
 
     uint32_t GetWindowWidth(HWindow window)
     {
+#if defined(AURORA_FBO)
+        if (dmAuroraFBO::IsInitialized())
+        {
+            // The engine renders at the FBO size, not the real framebuffer size
+            return dmAuroraFBO::GetWidth();
+        }
+#endif
         return (uint32_t) window->m_Width;
     }
     uint32_t GetWindowHeight(HWindow window)
     {
+#if defined(AURORA_FBO)
+        if (dmAuroraFBO::IsInitialized())
+        {
+            return dmAuroraFBO::GetHeight();
+        }
+#endif
         return (uint32_t) window->m_Height;
     }
 
@@ -543,10 +638,18 @@ namespace dmPlatform
         glfwSetWindowSize(window->m_Window, (int) width, (int) height);
         UpdateWindowSize(window);
 
+#if defined(AURORA_FBO)
+        dmAuroraFBO::SetFramebufferSize((uint32_t) window->m_Width, (uint32_t) window->m_Height);
+#endif
+
         // The callback is not called from glfw when the size is set manually
         if (window->m_ResizeCallback)
         {
+#if defined(AURORA_FBO)
+            window->m_ResizeCallback(window->m_ResizeCallbackUserData, dmAuroraFBO::GetWidth(), dmAuroraFBO::GetHeight());
+#else
             window->m_ResizeCallback(window->m_ResizeCallbackUserData, window->m_Width, window->m_Height);
+#endif
         }
     }
 

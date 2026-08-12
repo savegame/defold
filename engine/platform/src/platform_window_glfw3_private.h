@@ -17,9 +17,17 @@
 
 #if defined(DM_PLATFORM_AURORA)
     #define GLFW_INCLUDE_ES3
-#endif
-
+    // The shared lowercase <glfw/glfw3.h> in ext/include comes from the
+    // host-side glfw package (upstream 3.4) and does not declare the fork's
+    // wl_shell API (glfwGetMonitorTransform, glfwSetWindowContentTransform,
+    // glfwSetTouchCallback, GLFW_TRANSFORM_*). The fork header is installed
+    // by the port's glfw package under include/GLFW/ (same layout as the
+    // upstream arm64 glfw packages). Include it first: both headers share
+    // the same include guard, so the first one wins.
+    #include <GLFW/glfw3.h>
+#else
 #include <glfw/glfw3.h>
+#endif
 
 #include "window.hpp"
 
