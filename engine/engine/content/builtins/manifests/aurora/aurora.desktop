@@ -1,0 +1,14 @@
+[Desktop Entry]
+Name={{aurora.launcher_name}}
+Type=Application
+X-Nemo-Application-Type=no-invoker
+Icon={{aurora.org}}.{{aurora.app}}
+Exec=/usr/bin/{{aurora.org}}.{{aurora.app}} --aurora-org={{aurora.org}} --aurora-app={{aurora.app}}
+
+[X-Application]
+Permissions={{aurora.permissions}}
+OrganizationName={{aurora.org}}
+ApplicationName={{aurora.app}}
+
+[X-Aurora-Application]
+Orientation={{aurora.orientation}}
