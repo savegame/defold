@@ -2794,14 +2794,23 @@ class Configuration(object):
                      'osx-bundling': macos_files,
                      'linux-bundling': linux_files,
                      'switch-bundling': switch_files}
-        # Add dmengine to 'artefacts' procedurally
-        for type, plfs in {'android-bundling': [['armv7-android', 'armv7-android'], ['arm64-android', 'arm64-android']],
+        # Aurora OS is a private platform (.defold-platforms): add its artefacts
+        # only when the platform is configured, so upstream builds are unaffected.
+        # Bundled shared libraries for arm64-aurora are copied by the
+        # copy_private.sh hook in scripts/copy.sh (they come from the port's
+        # sysroot, not from DYNAMO_HOME).
+        dmengine_platforms = {'android-bundling': [['armv7-android', 'armv7-android'], ['arm64-android', 'arm64-android']],
                            'win32-bundling': [[win32_engine_platform, 'x86-win32'], ['x86_64-win32', 'x86_64-win32']],
                            'web-bundling': [['wasm-web', 'wasm-web'], ['wasm_pthread-web', 'wasm_pthread-web']],
                            'ios-bundling': [['arm64-ios', 'arm64-ios'], ['x86_64-ios', 'x86_64-ios']],
                            'osx-bundling': [['x86_64-macos', 'x86_64-macos'], ['arm64-macos', 'arm64-macos']],
                            'linux-bundling': [['x86_64-linux', 'x86_64-linux'], ['arm64-linux', 'arm64-linux']],
-                           'switch-bundling': [['arm64-nx64', 'arm64-nx64']]}.items():
+                           'switch-bundling': [['arm64-nx64', 'arm64-nx64']]}
+        if get_platform_root('arm64-aurora'):
+            artefacts['aurora-bundling'] = {}
+            dmengine_platforms['aurora-bundling'] = [['arm64-aurora', 'arm64-aurora']]
+        # Add dmengine to 'artefacts' procedurally
+        for type, plfs in dmengine_platforms.items():
             # plfs is pairs of src-platform -> dst-platform
             for plf in plfs:
                 exes = format_exes('dmengine', plf[1]) + format_exes('dmengine_release', plf[1])

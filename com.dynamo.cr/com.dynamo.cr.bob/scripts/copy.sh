@@ -31,6 +31,9 @@ mkdir -p libexec/x86_64-linux
 mkdir -p libexec/arm64-linux
 mkdir -p libexec/x86_64-macos
 mkdir -p libexec/arm64-macos
+# Aurora OS (private platform): engine + bundled libs are placed here by
+# copy_local_bob_artefacts()/copy_private.sh before createBobJar packs libexec/**.
+mkdir -p libexec/arm64-aurora
 # mkdir -p libexec/x86-win32
 mkdir -p libexec/x86_64-win32
 mkdir -p libexec/arm64-ios
@@ -177,6 +180,11 @@ copy x86_64-linux/stripped/dmengine_release x86_64-linux/dmengine_release
 copy arm64-linux/stripped/dmengine arm64-linux/dmengine
 copy arm64-linux/stripped/dmengine_release arm64-linux/dmengine_release
 # copy arm64-linux/stripped/dmengine_headless arm64-linux/dmengine_headless
+# Aurora OS (private platform); the archive only exists on CI that builds it
+if [ -d "$DYNAMO_HOME/archive/${SHA1}/engine/arm64-aurora" ]; then
+copy arm64-aurora/stripped/dmengine arm64-aurora/dmengine
+copy arm64-aurora/stripped/dmengine_release arm64-aurora/dmengine_release
+fi
 copy x86_64-macos/stripped/dmengine x86_64-macos/dmengine
 copy x86_64-macos/stripped/dmengine_release x86_64-macos/dmengine_release
 # copy x86_64-macos/stripped/dmengine_headless x86_64-macos/dmengine_headless
