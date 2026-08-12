@@ -249,6 +249,19 @@ namespace dmSocket
             return RESULT_AFNOSUPPORT;
         }
 
+#if defined(DM_PLATFORM_AURORA)
+        // DEFOLD CHANGE (Aurora): ENODEV here means there is no route to the
+        // multicast group (e.g. the device has no default route, only a
+        // direct link) or the interface is not multicast-capable. This is a
+        // normal transient network state on a phone, not an error: the mdns
+        // caller retries on every interface refresh (~5 s). Map it to a
+        // known result instead of letting NativeToResult() spam
+        // "Unknown result code 19" on every retry.
+        if (result != 0 && DM_SOCKET_ERRNO() == ENODEV)
+        {
+            return RESULT_HOSTUNREACH;
+        }
+#endif
         return result == 0 ? RESULT_OK : NATIVETORESULT(DM_SOCKET_ERRNO());
 #endif
     }
