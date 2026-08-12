@@ -46,13 +46,15 @@ if(DEFOLD_PLATFORM_WINDOW_SOURCES)
 elseif(TARGET_PLATFORM_OS STREQUAL "aurora")
     # Aurora OS: GLFW3 (fork with wl_shell) + Linux window integration
     # + port modules from the private repo (FBO/rotation layer, used when
-    # the port defines AURORA_FBO in scripts/cmake/platform_aurora.cmake)
+    # the port defines AURORA_FBO in scripts/cmake/platform_aurora.cmake,
+    # and the touch input layer)
     set(PLATFORM_USE_GLFW3 ON)
     set(_platform_glfw_sources
         "${PLAT_SRC_DIR}/window.cpp"
         "${PLAT_SRC_DIR}/platform_window_glfw3.cpp"
         "${PLAT_SRC_DIR}/platform_window_glfw3_linux.cpp"
-        "${DEFOLD_PRIVATE_REPO_ROOT}/engine/platform/src/aurora/fbo.cpp")
+        "${DEFOLD_PRIVATE_REPO_ROOT}/engine/platform/src/aurora/fbo.cpp"
+        "${DEFOLD_PRIVATE_REPO_ROOT}/engine/platform/src/aurora/touch.cpp")
 elseif(DEFOLD_IS_PRIVATE_VENDOR)
     if(TARGET_PLATFORM_OS STREQUAL "xbone")
         set(_platform_glfw_sources

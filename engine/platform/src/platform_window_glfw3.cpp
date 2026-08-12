@@ -34,6 +34,11 @@
     #include <aurora/fbo.h>
 #endif
 
+#if defined(DM_PLATFORM_AURORA)
+    // Port module (private repo): touch input layer
+    #include <aurora/touch.h>
+#endif
+
 namespace dmPlatform
 {
     // Gamepad callbacks are shared across all windows, so we need a
@@ -165,6 +170,27 @@ namespace dmPlatform
             g_GLFW3Context.m_GamepadEventCallback(g_GLFW3Context.m_GamepadEventCallbackUserData, id, gp_evt);
         }
     }
+
+#if defined(DM_PLATFORM_AURORA)
+    static void OnTouchEvent(GLFWwindow* glfw_window, int slot, int action, double x, double y)
+    {
+        dmAuroraTouch::Action touch_action;
+        switch (action)
+        {
+            case GLFW_PRESS:        touch_action = dmAuroraTouch::ACTION_DOWN;   break;
+            case GLFW_RELEASE:      touch_action = dmAuroraTouch::ACTION_UP;     break;
+            case GLFW_REPEAT:       touch_action = dmAuroraTouch::ACTION_MOVE;   break;
+            case GLFW_TOUCH_CANCEL: touch_action = dmAuroraTouch::ACTION_CANCEL; break;
+            default: return;
+        }
+        // wl_touch delivers window ("screen") coordinates; scale them to
+        // framebuffer pixels like GetMousePosition() does
+        HWindow window = (HWindow) glfwGetWindowUserPointer(glfw_window);
+        float w_scale = (float) window->m_Width / (float) window->m_WidthScreen;
+        float h_scale = (float) window->m_Height / (float) window->m_HeightScreen;
+        dmAuroraTouch::OnTouchEvent(slot, touch_action, (float) (x * w_scale), (float) (y * h_scale));
+    }
+#endif
 
 #if defined(AURORA_FBO)
     static void OnMonitorEvent(GLFWmonitor* monitor, int event)
@@ -444,6 +470,10 @@ namespace dmPlatform
             glfwSetMarkedTextCallback(window->m_Window, OnMarkedTextCallback);
             glfwSetWindowContentScaleCallback(window->m_Window, OnContentScaleCallback);
 
+#if defined(DM_PLATFORM_AURORA)
+            glfwSetTouchCallback(window->m_Window, OnTouchEvent);
+#endif
+
             glfwSetJoystickCallback(OnJoystick);
 
 #if defined(DM_PLATFORM_AURORA)
@@ -715,7 +745,12 @@ namespace dmPlatform
 
     uint32_t GetTouchData(HWindow window, WindowTouchData* touch_data, uint32_t touch_data_count)
     {
+#if defined(DM_PLATFORM_AURORA)
+        // Port module: state layer over the fork's glfwSetTouchCallback
+        return dmAuroraTouch::GetTouchData(touch_data, touch_data_count);
+#else
         return 0;
+#endif
     }
 
     bool GetAcceleration(HWindow window, float* x, float* y, float* z)
@@ -754,8 +789,24 @@ namespace dmPlatform
         float w_scale = (float) window->m_Width / (float) window->m_WidthScreen;
         float h_scale = (float) window->m_Height / (float) window->m_HeightScreen;
 
-        *x = (int32_t) (xpos * w_scale);
-        *y = (int32_t) (ypos * h_scale);
+        int32_t ix = (int32_t) (xpos * w_scale);
+        int32_t iy = (int32_t) (ypos * h_scale);
+
+#if defined(AURORA_FBO)
+        // The cursor position arrives in native framebuffer coordinates;
+        // the engine expects the FBO's local system (inverse rotation).
+        // Same single transform as the touch path.
+        if (dmAuroraFBO::IsInitialized())
+        {
+            float fx, fy;
+            dmAuroraFBO::TransformInputPoint((float) ix, (float) iy, &fx, &fy);
+            ix = (int32_t) fx;
+            iy = (int32_t) fy;
+        }
+#endif
+
+        *x = ix;
+        *y = iy;
     }
 
     bool GetDeviceState(HWindow window, WindowDeviceState state, int32_t op1)
