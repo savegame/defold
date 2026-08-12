@@ -11,5 +11,6 @@ class TargetOSContants(NamedTuple):
     PS4: str = 'ps4'
     PS5: str = 'ps5'
     XBONE: str = 'xbone'
+    AURORA: str = 'aurora'
 
 TargetOS = TargetOSContants()

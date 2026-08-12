@@ -36,6 +36,9 @@ function(defold_target_link_app target platform)
     else()
       target_link_libraries(${target} ${DAPP_SCOPE} Xext X11 Xi pthread)
     endif()
+  elseif(_PLAT_OS STREQUAL "aurora")
+    # LIB_APP for Aurora OS: no X11, Wayland/EGL are dlopen'ed by GLFW
+    target_link_libraries(${target} ${DAPP_SCOPE} pthread)
   elseif(_PLAT_OS STREQUAL "win32")
     # LINKFLAGS_APP for Windows (plus DINPUT set)
     target_link_libraries(${target} ${DAPP_SCOPE}

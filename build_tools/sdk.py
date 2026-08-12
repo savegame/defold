@@ -1074,7 +1074,7 @@ def _get_local_sdk_info(platform, verbose=False):
         if not os.path.exists(info['asan']['path']):
             print("sdk.py: Couldn't find '%s'" % info['asan']['path'], file=sys.stderr)
 
-    elif platform in ('x86_64-linux','arm64-linux'):
+    elif platform in ('x86_64-linux','arm64-linux','arm64-aurora'):
         info[platform] = {}
         info[platform]['version'] = get_local_compiler_version()
         info['clang-version'] = info[platform]['version']
@@ -1213,6 +1213,7 @@ def _create_hello_world(path):
 def _get_clang_arch_from_platform(platform):
     if platform == 'x86_64-linux':  return 'x86_64-unknown-linux-gnu'
     if platform == 'arm64-linux':   return 'aarch64-unknown-linux-gnu'
+    if platform == 'arm64-aurora':  return 'aarch64-unknown-linux-gnu'
     if platform == 'x86_64-macos':  return 'x86_64-apple-darwin19'
     if platform == 'arm64-macos':   return 'arm64-apple-darwin19'
     return None
@@ -1241,7 +1242,7 @@ def _parse_version_tuple(version):
 def _test_version_clang(platform, info, can_run, verbose):
     required_version = None
 
-    if platform in ['arm64-linux', 'x86_64-linux']:
+    if platform in ['arm64-linux', 'x86_64-linux', 'arm64-aurora']:
         required_version = VERSION_LINUX_CLANG
     elif platform in ['arm64-macos', 'x86_64-macos', 'arm64-ios', 'x86_64-ios']:
         required_version = VERSION_XCODE_CLANG
@@ -1265,7 +1266,7 @@ def _compile_file_clang(platform, info, srcfile, exefile, verbose):
     # if we can rely on the PATH variable
     use_local_path = False
     clang = 'clang++'
-    if platform in ['arm64-linux', 'x86_64-linux', 'arm64-macos', 'x86_64-macos', 'arm64-ios', 'x86_64-ios']:
+    if platform in ['arm64-linux', 'x86_64-linux', 'arm64-aurora', 'arm64-macos', 'x86_64-macos', 'arm64-ios', 'x86_64-ios']:
         use_local_path = True
         clang = _get_clang_from_info(info)
         if verbose:
@@ -1287,7 +1288,7 @@ def _compile_file_clang(platform, info, srcfile, exefile, verbose):
     if target is not None:
         cmd.append(f'--target={target}')
 
-    if platform == 'arm64-linux':
+    if platform in ('arm64-linux', 'arm64-aurora'):
         sysroot = os.environ.get('AURORA_SYSROOT')
         if sysroot:
             gcc_install_dir = os.path.join(sysroot, 'usr', 'lib', 'gcc', 'aarch64-meego-linux-gnu', '12.3.1')
@@ -1321,7 +1322,7 @@ def test_sdk(platform, info, verbose=False):
     if not can_run:
         can_run = host == 'arm64-macos' and platform == 'x86_64-macos'
 
-    if platform in ['arm64-linux', 'x86_64-linux',
+    if platform in ['arm64-linux', 'x86_64-linux', 'arm64-aurora',
                     'arm64-macos', 'x86_64-macos',
                     'arm64-ios', 'x86_64-ios',
                     'arm64-android', 'armv7-android']:

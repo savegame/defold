@@ -57,6 +57,9 @@ def platform_file_tags(platform):
         add("xbox")
         add("microsoft")
         add("win32")
+    elif target == "aurora":
+        # Aurora OS reuses the Linux platform sources (sys_linux.cpp etc.)
+        add("linux")
 
     if target in ("macos", "ios"):
         add("darwin")
@@ -90,7 +93,7 @@ def private_platform_file_tags(platform):
 def fallback_tags(platform):
     target = platform_target(platform)
     tags = []
-    if target in ("android", "ios", "linux", "macos", "web"):
+    if target in ("android", "ios", "linux", "macos", "web", "aurora"):
         tags.append("posix")
     tags.append("default")
     return tags

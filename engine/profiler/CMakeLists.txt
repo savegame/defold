@@ -38,7 +38,7 @@ elseif(TARGET_PLATFORM MATCHES "android")
   list(APPEND PROFILER_SOURCES
     "${PROFILER_SRC_DIR}/profiler_android.cpp"
     "${PROFILER_SRC_DIR}/profiler_proc_utils.cpp")
-elseif(TARGET_PLATFORM MATCHES "linux")
+elseif(TARGET_PLATFORM MATCHES "linux|aurora")
   list(APPEND PROFILER_SOURCES
     "${PROFILER_SRC_DIR}/profiler_linux.cpp"
     "${PROFILER_SRC_DIR}/profiler_proc_utils.cpp")

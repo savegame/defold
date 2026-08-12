@@ -52,7 +52,7 @@ defold_add_library(lua STATIC ${LUA_LIB_SOURCES})
 target_include_directories(lua PUBLIC "${LUA_CORE_DIR}" "${LUA_SRC_DIR}")
 target_compile_definitions(lua PUBLIC ${LUA_DEFINES})
 
-if(TARGET_PLATFORM MATCHES "linux|android|web")
+if(TARGET_PLATFORM MATCHES "linux|android|web|aurora")
   target_link_libraries(lua PUBLIC m)
 endif()
 
