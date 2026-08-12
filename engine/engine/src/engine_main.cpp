@@ -23,6 +23,7 @@
 #endif
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "engine.h"
 #include "engine_version.h"
@@ -162,6 +163,20 @@ int engine_main(int argc, char *argv[])
 {
 #if defined(DM_PLATFORM_AURORA)
     setenv("PULSE_PROP_media.role", "x-maemo", 1);
+    // Aurora OS: org/app arrive as command line flags from the .desktop Exec line
+    // (set by the AuroraBundler), e.g. --aurora-org=org.example --aurora-app=game.
+    // The sandbox path functions (dmSys::GetResourcesPath/GetLogPath/
+    // GetApplicationSupportPath) read them from the AURORA_ORG/AURORA_APP
+    // environment variables, so translate the flags here, as early as possible.
+    // The flags start with "--" and are invisible to the project file lookup
+    // (only the last argument not starting with '-' is treated as a path).
+    for (int i = 1; i < argc; ++i)
+    {
+        if (strncmp(argv[i], "--aurora-org=", 13) == 0)
+            setenv("AURORA_ORG", argv[i] + 13, 1);
+        else if (strncmp(argv[i], "--aurora-app=", 13) == 0)
+            setenv("AURORA_APP", argv[i] + 13, 1);
+    }
 #endif
     return EngineMain(argc, argv);
 }
