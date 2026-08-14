@@ -37,8 +37,16 @@ function(defold_target_link_app target platform)
       target_link_libraries(${target} ${DAPP_SCOPE} Xext X11 Xi pthread)
     endif()
   elseif(_PLAT_OS STREQUAL "aurora")
-    # LIB_APP for Aurora OS: no X11, Wayland/EGL are dlopen'ed by GLFW
-    target_link_libraries(${target} ${DAPP_SCOPE} pthread)
+    # LIB_APP for Aurora OS: no X11, Wayland/EGL are dlopen'ed by GLFW.
+    # glib-2.0/gio-2.0/gobject-2.0 are for engine/platform/src/aurora/
+    # mce_keepalive.c (MCE display-blanking prevention, GDBus on the system
+    # bus - see docs/mce_display_blanking.md). Names and order come from
+    # `pkg-config --libs glib-2.0 gio-2.0` run inside sb2 against the
+    # target (see agents/t11-mce.md) - gobject-2.0 is a transitive
+    # dependency of gio-2.0 (mce_keepalive.c also calls g_object_unref
+    # directly) and is not obvious from the two pkg-config package names
+    # alone, so it is not safe to type by hand.
+    target_link_libraries(${target} ${DAPP_SCOPE} pthread gio-2.0 gobject-2.0 glib-2.0)
   elseif(_PLAT_OS STREQUAL "win32")
     # LINKFLAGS_APP for Windows (plus DINPUT set)
     target_link_libraries(${target} ${DAPP_SCOPE}

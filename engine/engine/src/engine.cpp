@@ -81,6 +81,11 @@
     #include "engine_web.h"
 #endif
 
+#if defined(DM_PLATFORM_AURORA)
+    // Port module (private repo): MCE display-blanking-prevention layer
+    #include <aurora/mce_keepalive.h>
+#endif
+
 
 // Embedded resources
 // Unfortunately, the draw_line et. al are used in production code
@@ -311,6 +316,11 @@ namespace dmEngine
         dmExtension::DispatchEvent( params, &event );
 
         dmGameSystem::OnWindowIconify(iconify != 0);
+
+#if defined(DM_PLATFORM_AURORA)
+        // Minimized -> let the display blank normally again; restored -> prevent it.
+        mce_keepalive_set_prevent_blanking(iconify == 0);
+#endif
     }
 
     static void SetupComponentCreateContext(HEngine engine, dmGameObject::ComponentTypeCreateCtx& component_create_ctx, dmGameObject::ComponentTypeCreateCtxImpl& component_create_ctx_impl)
@@ -590,6 +600,12 @@ namespace dmEngine
             dmPlatform::CloseWindow(engine->m_Window);
             dmPlatform::DeleteWindow(engine->m_Window);
         }
+
+#if defined(DM_PLATFORM_AURORA)
+        // Paired with mce_keepalive_init() in Init(): cancel any active
+        // blanking pause and disconnect from the bus on regular shutdown.
+        mce_keepalive_shutdown();
+#endif
 
         if (engine->m_SystemSocket)
             dmMessage::DeleteSocket(engine->m_SystemSocket);
@@ -1256,6 +1272,18 @@ namespace dmEngine
             dmLogFatal("Could not open window (%d).", platform_result);
             return false;
         }
+
+#if defined(DM_PLATFORM_AURORA)
+        // App starts in the foreground: connect to MCE and prevent display
+        // blanking (docs/mce_display_blanking.md). Degrades safely to a
+        // no-op if the system bus / MCE service are unavailable.
+        bool mce_available = mce_keepalive_init();
+        dmLogInfo("MCE keepalive: mce_keepalive_init() -> %s", mce_available ? "true" : "false");
+        if (mce_available)
+        {
+            mce_keepalive_set_prevent_blanking(true);
+        }
+#endif
 
         bool setting_vsync     = dmConfigFile::GetInt(engine->m_Config, "display.vsync", true); // Deprecated
         uint32_t swap_interval = dmConfigFile::GetInt(engine->m_Config, "display.swap_interval", 1);
@@ -1971,6 +1999,13 @@ bail:
 
     static void StepFrame(HEngine engine, float dt)
     {
+#if defined(DM_PLATFORM_AURORA)
+        // Drain the GLib main context first thing, before the early return
+        // below for an iconified window - otherwise the MCE renewal timer
+        // stops ticking while minimized (docs/mce_display_blanking.md).
+        mce_keepalive_pump();
+#endif
+
         uint64_t frame_start = dmTime::GetMonotonicTime();
 
         dmProfiler::SetUpdateFrequency((uint32_t)(1.0f / dt));

@@ -47,14 +47,16 @@ elseif(TARGET_PLATFORM_OS STREQUAL "aurora")
     # Aurora OS: GLFW3 (fork with wl_shell) + Linux window integration
     # + port modules from the private repo (FBO/rotation layer, used when
     # the port defines AURORA_FBO in scripts/cmake/platform_aurora.cmake,
-    # and the touch input layer)
+    # the touch input layer, and the MCE display-blanking-prevention layer,
+    # called from engine/engine/src/engine.cpp)
     set(PLATFORM_USE_GLFW3 ON)
     set(_platform_glfw_sources
         "${PLAT_SRC_DIR}/window.cpp"
         "${PLAT_SRC_DIR}/platform_window_glfw3.cpp"
         "${PLAT_SRC_DIR}/platform_window_glfw3_linux.cpp"
         "${DEFOLD_PRIVATE_REPO_ROOT}/engine/platform/src/aurora/fbo.cpp"
-        "${DEFOLD_PRIVATE_REPO_ROOT}/engine/platform/src/aurora/touch.cpp")
+        "${DEFOLD_PRIVATE_REPO_ROOT}/engine/platform/src/aurora/touch.cpp"
+        "${DEFOLD_PRIVATE_REPO_ROOT}/engine/platform/src/aurora/mce_keepalive.c")
 elseif(DEFOLD_IS_PRIVATE_VENDOR)
     if(TARGET_PLATFORM_OS STREQUAL "xbone")
         set(_platform_glfw_sources
@@ -98,6 +100,24 @@ target_include_directories(platform PUBLIC "${PLAT_SRC_DIR}" "${PLATFORM_GENERAT
 target_compile_definitions(platform PRIVATE "DLIB_LOG_DOMAIN=\"PLATFORM\"")
 defold_target_link_libraries(platform "${TARGET_PLATFORM}" SCOPE PUBLIC ${PLATFORM_DEPENDENCIES})
 
+if(TARGET_PLATFORM_OS STREQUAL "aurora")
+    # mce_keepalive.c (GLib/GDBus, see docs/mce_display_blanking.md) needs
+    # the sysroot's GLib headers. --sysroot (scripts/cmake/platform_aurora.cmake)
+    # only relocates the compiler's own default search paths, not explicit
+    # -I paths, so pkg-config's include dirs (queried inside sb2 against the
+    # target - see agents/t11-mce.md) must be sysroot-prefixed by hand here.
+    # Applied to platform_vulkan too below - it recompiles the same
+    # _platform_glfw_sources list, mce_keepalive.c included.
+    set(_AURORA_SYSROOT_FOR_GLIB "$ENV{AURORA_SYSROOT}")
+    if(NOT _AURORA_SYSROOT_FOR_GLIB)
+        message(FATAL_ERROR "platform (aurora): AURORA_SYSROOT environment variable is not set")
+    endif()
+    set(_AURORA_GLIB_INCLUDE_DIRS
+        "${_AURORA_SYSROOT_FOR_GLIB}/usr/include/glib-2.0"
+        "${_AURORA_SYSROOT_FOR_GLIB}/usr/lib64/glib-2.0/include")
+    target_include_directories(platform PRIVATE ${_AURORA_GLIB_INCLUDE_DIRS})
+endif()
+
 if (PLATFORM_USE_GLFW3)
     target_compile_definitions(platform PUBLIC DM_INPUT_USE_GLFW3)
 endif()
@@ -118,6 +138,9 @@ if (PLATFORM_USE_GLFW3)
     target_include_directories(platform_vulkan PUBLIC "${PLAT_SRC_DIR}" "${PLATFORM_GENERATED_INCLUDE_DIR}")
     target_compile_definitions(platform_vulkan PRIVATE "DLIB_LOG_DOMAIN=\"PLATFORM\"")
     defold_target_link_libraries(platform_vulkan "${TARGET_PLATFORM}" SCOPE PUBLIC ${PLATFORM_DEPENDENCIES})
+    if(TARGET_PLATFORM_OS STREQUAL "aurora")
+        target_include_directories(platform_vulkan PRIVATE ${_AURORA_GLIB_INCLUDE_DIRS})
+    endif()
 endif()
 
 
