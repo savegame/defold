@@ -288,6 +288,32 @@ namespace dmPlatform
     {
     }
 
+#if defined(DM_PLATFORM_AURORA)
+    // Null-backend counterparts of the Aurora on-screen-keyboard (Maliit)
+    // hooks declared in window.hpp - keeps dmengine_headless (which links
+    // this file, never platform_window_glfw3.cpp) from having to pull in
+    // the real Maliit bridge just to resolve these symbols.
+    void InputMethodInit(HWindow window)
+    {
+    }
+
+    void InputMethodShutdown()
+    {
+    }
+
+    void InputMethodPump()
+    {
+    }
+
+    void InjectKeyboardChar(HWindow window, int chr)
+    {
+    }
+
+    void InjectMarkedText(HWindow window, char* text)
+    {
+    }
+#endif
+
     void* AcquireAuxContext(HWindow window)
     {
         return 0;

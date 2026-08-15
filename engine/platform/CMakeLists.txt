@@ -47,8 +47,13 @@ elseif(TARGET_PLATFORM_OS STREQUAL "aurora")
     # Aurora OS: GLFW3 (fork with wl_shell) + Linux window integration
     # + port modules from the private repo (FBO/rotation layer, used when
     # the port defines AURORA_FBO in scripts/cmake/platform_aurora.cmake,
-    # the touch input layer, and the MCE display-blanking-prevention layer,
-    # called from engine/engine/src/engine.cpp)
+    # the touch input layer, the MCE display-blanking-prevention layer
+    # called from engine/engine/src/engine.cpp, and the Maliit on-screen
+    # keyboard bridge (maliit_client.* copied unmodified from examples/
+    # maliit/, maliit_bridge.cpp is the port's own glue - docs/
+    # maliit_keyboard.md), reached only from platform_window_glfw3.cpp via
+    # the dmPlatform::InputMethod*/Inject* API in window.hpp - engine.cpp
+    # itself stays Maliit-agnostic, same as it is for other platforms' IME)
     set(PLATFORM_USE_GLFW3 ON)
     set(_platform_glfw_sources
         "${PLAT_SRC_DIR}/window.cpp"
@@ -56,7 +61,9 @@ elseif(TARGET_PLATFORM_OS STREQUAL "aurora")
         "${PLAT_SRC_DIR}/platform_window_glfw3_linux.cpp"
         "${DEFOLD_PRIVATE_REPO_ROOT}/engine/platform/src/aurora/fbo.cpp"
         "${DEFOLD_PRIVATE_REPO_ROOT}/engine/platform/src/aurora/touch.cpp"
-        "${DEFOLD_PRIVATE_REPO_ROOT}/engine/platform/src/aurora/mce_keepalive.c")
+        "${DEFOLD_PRIVATE_REPO_ROOT}/engine/platform/src/aurora/mce_keepalive.c"
+        "${DEFOLD_PRIVATE_REPO_ROOT}/engine/platform/src/aurora/maliit_client.c"
+        "${DEFOLD_PRIVATE_REPO_ROOT}/engine/platform/src/aurora/maliit_bridge.cpp")
 elseif(DEFOLD_IS_PRIVATE_VENDOR)
     if(TARGET_PLATFORM_OS STREQUAL "xbone")
         set(_platform_glfw_sources
@@ -116,6 +123,14 @@ if(TARGET_PLATFORM_OS STREQUAL "aurora")
         "${_AURORA_SYSROOT_FOR_GLIB}/usr/include/glib-2.0"
         "${_AURORA_SYSROOT_FOR_GLIB}/usr/lib64/glib-2.0/include")
     target_include_directories(platform PRIVATE ${_AURORA_GLIB_INCLUDE_DIRS})
+
+    # Opt-in diagnostic logging for the Maliit bridge (T12, docs/
+    # maliit_keyboard.md) - length/keycode only, never entered text (see
+    # maliit_bridge.cpp). Off by default; set AURORA_MALIIT_DEBUG_LOG=1
+    # at configure time to trace key_event/commit_string delivery.
+    if("$ENV{AURORA_MALIIT_DEBUG_LOG}" STREQUAL "1")
+        target_compile_definitions(platform PRIVATE DM_AURORA_MALIIT_DEBUG_LOG)
+    endif()
 endif()
 
 if (PLATFORM_USE_GLFW3)
@@ -140,6 +155,9 @@ if (PLATFORM_USE_GLFW3)
     defold_target_link_libraries(platform_vulkan "${TARGET_PLATFORM}" SCOPE PUBLIC ${PLATFORM_DEPENDENCIES})
     if(TARGET_PLATFORM_OS STREQUAL "aurora")
         target_include_directories(platform_vulkan PRIVATE ${_AURORA_GLIB_INCLUDE_DIRS})
+        if("$ENV{AURORA_MALIIT_DEBUG_LOG}" STREQUAL "1")
+            target_compile_definitions(platform_vulkan PRIVATE DM_AURORA_MALIIT_DEBUG_LOG)
+        endif()
     endif()
 endif()
 

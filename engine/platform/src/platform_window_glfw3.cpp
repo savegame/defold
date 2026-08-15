@@ -39,6 +39,11 @@
     #include <aurora/touch.h>
 #endif
 
+#if defined(DM_PLATFORM_AURORA)
+    // Port module (private repo): Maliit on-screen keyboard bridge
+    #include <aurora/maliit_bridge.h>
+#endif
+
 namespace dmPlatform
 {
     // Gamepad callbacks are shared across all windows, so we need a
@@ -210,6 +215,13 @@ namespace dmPlatform
             {
                 glfwSetWindowContentTransform(g_GLFW3Context.m_Window, rotation);
             }
+#if defined(DM_PLATFORM_AURORA)
+            // Maliit needs the current content orientation to draw the OSK
+            // right-side up. rotation encodes 0/90/180/270 as 0..3
+            // (fbo.h), the same value just sent to
+            // glfwSetWindowContentTransform() above - convert to degrees.
+            dmAuroraMaliit::SetOrientation(rotation * 90);
+#endif
             dmLogInfo("Aurora: monitor transform %d -> content rotation %d", transform, rotation);
         }
     }
@@ -764,7 +776,17 @@ namespace dmPlatform
         {
             return 0;
         }
-        return glfwGetKey(window->m_Window, code);
+        int32_t state = glfwGetKey(window->m_Window, code);
+#if defined(DM_PLATFORM_AURORA)
+        // Editing keys forwarded by Maliit's keyEvent (Backspace/Enter/
+        // arrows/...) - see aurora/maliit_bridge.h. OR'd in, never
+        // overrides an actually-released real key.
+        if (state != GLFW_PRESS && dmAuroraMaliit::GetSyntheticKeyState(code))
+        {
+            state = GLFW_PRESS;
+        }
+#endif
+        return state;
     }
 
     int32_t GetMouseWheel(HWindow window)
@@ -902,7 +924,71 @@ namespace dmPlatform
                 glfwSetInputMode(window->m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             }
         }
+#if defined(DM_PLATFORM_AURORA)
+        else if (state == WINDOW_DEVICE_STATE_KEYBOARD_DEFAULT ||
+                 state == WINDOW_DEVICE_STATE_KEYBOARD_NUMBER_PAD ||
+                 state == WINDOW_DEVICE_STATE_KEYBOARD_EMAIL ||
+                 state == WINDOW_DEVICE_STATE_KEYBOARD_PASSWORD)
+        {
+            if (op1)
+            {
+#if defined(AURORA_FBO)
+                // Together with wl_surface_set_buffer_transform (see
+                // OnMonitorEvent above): the OSK must open in the same
+                // orientation as the game, and this is the only other place
+                // orientation can change without a monitor event in between.
+                dmAuroraMaliit::SetOrientation(dmAuroraFBO::GetRotation() * 90);
+#endif
+                dmAuroraMaliit::ContentType content_type = dmAuroraMaliit::CONTENT_DEFAULT;
+                switch (state)
+                {
+                    case WINDOW_DEVICE_STATE_KEYBOARD_NUMBER_PAD: content_type = dmAuroraMaliit::CONTENT_NUMBER_PAD; break;
+                    case WINDOW_DEVICE_STATE_KEYBOARD_EMAIL:      content_type = dmAuroraMaliit::CONTENT_EMAIL;      break;
+                    case WINDOW_DEVICE_STATE_KEYBOARD_PASSWORD:   content_type = dmAuroraMaliit::CONTENT_PASSWORD;   break;
+                    default: break; // WINDOW_DEVICE_STATE_KEYBOARD_DEFAULT -> CONTENT_DEFAULT
+                }
+                dmAuroraMaliit::Show(content_type);
+            }
+            else
+            {
+                dmAuroraMaliit::Hide();
+            }
+        }
+#endif
     }
+
+#if defined(DM_PLATFORM_AURORA)
+    void InputMethodInit(HWindow window)
+    {
+        dmAuroraMaliit::Init(window);
+    }
+
+    void InputMethodShutdown()
+    {
+        dmAuroraMaliit::Shutdown();
+    }
+
+    void InputMethodPump()
+    {
+        dmAuroraMaliit::Pump();
+    }
+
+    void InjectKeyboardChar(HWindow window, int chr)
+    {
+        if (window->m_AddKeyboarCharCallBack)
+        {
+            window->m_AddKeyboarCharCallBack(window->m_AddKeyboarCharCallBackUserData, chr);
+        }
+    }
+
+    void InjectMarkedText(HWindow window, char* text)
+    {
+        if (window->m_SetMarkedTextCallback)
+        {
+            window->m_SetMarkedTextCallback(window->m_SetMarkedTextCallbackUserData, text);
+        }
+    }
+#endif
 
     void SetKeyboardCharCallback(HWindow window, FWindowAddKeyboardCharCallback cb, void* user_data)
     {

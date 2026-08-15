@@ -60,6 +60,25 @@ namespace dmPlatform
     void           SetKeyboardCharCallback(HWindow window, FWindowAddKeyboardCharCallback cb, void* user_data);
     void           SetKeyboardMarkedTextCallback(HWindow window, FWindowSetMarkedTextCallback cb, void* user_data);
     void           SetKeyboardDeviceChangedCallback(HWindow window, FWindowDeviceChangedCallback cb, void* user_data);
+
+#if defined(DM_PLATFORM_AURORA)
+    // On-screen-keyboard (Maliit) lifecycle, hidden behind dmPlatform so
+    // engine.cpp stays platform-agnostic (docs/maliit_keyboard.md) - mirrors
+    // how Android hides its IME behind this same API. The real backend
+    // (platform_window_glfw3.cpp) forwards to engine/platform/src/aurora/
+    // maliit_bridge.cpp; the null backend (platform_window_null.cpp) no-ops.
+    void           InputMethodInit(HWindow window);
+    void           InputMethodShutdown();
+    void           InputMethodPump();
+
+    // Feeds synthetic keyboard input through the same callbacks a physical/
+    // GLFW-originated key press would use, without a GLFW key event. Used by
+    // the Maliit on-screen-keyboard bridge (engine/platform/src/aurora/
+    // maliit_bridge.cpp) to turn commit_string/updatePreedit into the
+    // engine's regular text-input path (docs/maliit_keyboard.md).
+    void           InjectKeyboardChar(HWindow window, int chr);
+    void           InjectMarkedText(HWindow window, char* text);
+#endif
     void           SetGamepadEventCallback(HWindow window, FWindowGamepadEventCallback cb, void* user_data);
 
     void           HideWindow(HWindow window);

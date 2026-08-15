@@ -605,6 +605,8 @@ namespace dmEngine
         // Paired with mce_keepalive_init() in Init(): cancel any active
         // blanking pause and disconnect from the bus on regular shutdown.
         mce_keepalive_shutdown();
+        // Paired with dmPlatform::InputMethodInit() in Init().
+        dmPlatform::InputMethodShutdown();
 #endif
 
         if (engine->m_SystemSocket)
@@ -1283,6 +1285,11 @@ namespace dmEngine
         {
             mce_keepalive_set_prevent_blanking(true);
         }
+
+        // On-screen keyboard (T12, docs/maliit_keyboard.md) - hidden behind
+        // dmPlatform (see window.hpp), degrades safely to a no-op if the
+        // maliit server is unavailable.
+        dmPlatform::InputMethodInit(engine->m_Window);
 #endif
 
         bool setting_vsync     = dmConfigFile::GetInt(engine->m_Config, "display.vsync", true); // Deprecated
@@ -2004,6 +2011,10 @@ bail:
         // below for an iconified window - otherwise the MCE renewal timer
         // stops ticking while minimized (docs/mce_display_blanking.md).
         mce_keepalive_pump();
+        // Both iterate the same default GLib context (docs/mce_display_
+        // blanking.md §3) - the extra call is redundant but harmless, kept
+        // for module independence rather than relying on MCE's pump.
+        dmPlatform::InputMethodPump();
 #endif
 
         uint64_t frame_start = dmTime::GetMonotonicTime();
